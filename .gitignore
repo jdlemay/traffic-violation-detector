@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+
+# Data & models (never commit footage, plates, or big weights)
+data/
+*.mp4
+*.mkv
+*.db
+*.pt
+*.engine
+*.onnx
+models/*.pt
+models/*.engine
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/

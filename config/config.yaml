@@ -1,0 +1,104 @@
+# Traffic Violation Detection System — central configuration.
+# Every tunable lives here. See docs/ for rationale behind defaults.
+
+system:
+  device: "cuda:0"          # "cuda:0" on Jetson, "cpu" for laptop dev
+  log_level: "INFO"
+
+capture:
+  # source can be: an integer camera index, a v4l2 device path, a GStreamer
+  # pipeline string, or a video file path (dev). CLI --source overrides this.
+  source: 0
+  width: 1920
+  height: 1080
+  fps: 30
+  # Optional second (telephoto/ALPR) camera; null to disable.
+  plate_source: null
+  frame_queue_size: 4       # small: drop oldest under back-pressure
+
+detector:
+  model: "yolo11s.pt"       # exported to .engine (TensorRT) on device
+  conf_threshold: 0.35
+  iou_threshold: 0.5
+  imgsz: 640
+  # COCO class ids we care about (car, motorcycle, bus, truck, person,
+  # bicycle, traffic light, stop sign).
+  keep_classes: [0, 1, 2, 3, 5, 7, 9, 11]
+  tracker: "bytetrack.yaml" # ultralytics built-in; "botsort.yaml" also valid
+
+geometry:
+  # Camera-to-ground homography, filled by calibration (geometry.py).
+  # 3x3 row-major; null => distance/speed estimates disabled (rules degrade).
+  homography: null
+  camera_height_m: 1.3      # used by the simple pinhole fallback estimator
+
+recorder:
+  archive_dir: "./data/archive"
+  segment_seconds: 2        # ring-buffer segment length
+  pre_event_seconds: 10
+  post_event_seconds: 10
+  encoder: "auto"           # "nvenc" on Jetson, "x264"/"auto" on laptop
+  container: "mp4"
+
+storage:
+  db_path: "./data/events.db"
+  media_dir: "./data/events"
+
+sensors:
+  gps:
+    enabled: true
+    backend: "gpsd"         # "gpsd" | "serial" | "sim"
+    serial_port: "/dev/ttyACM0"
+    baud: 38400
+  imu:
+    enabled: true
+    backend: "i2c"          # "i2c" | "sim"
+    i2c_bus: 1
+    i2c_addr: 0x28          # BNO085 default; adjust for your part
+  obd:
+    enabled: true
+    backend: "obd"          # "obd" | "sim"
+    port: null              # null = auto-detect
+
+violations:
+  # Per-detector thresholds and per-type cooldown (seconds) to debounce.
+  cooldown_seconds: 8
+  min_confidence_to_save: 0.4
+
+  collision:
+    enabled: true
+    threshold_g: 2.5        # net acceleration over gravity
+    corroborate_speed_drop_mps: 3.0
+
+  hard_brake:
+    enabled: true
+    decel_g: 0.4            # longitudinal deceleration
+    accel_g: 0.4            # harsh acceleration
+    lateral_g: 0.45         # hard cornering
+
+  tailgating:
+    enabled: true
+    time_gap_seconds: 1.0   # below this = tailgating
+    hold_seconds: 2.0       # must persist this long
+    min_ego_speed_mps: 8.0  # ~29 km/h; ignore at low speed
+
+  forward_collision:
+    enabled: true
+    ttc_seconds: 1.5        # time-to-collision warning
+
+  lane_departure:
+    enabled: true
+    require_no_signal: true # only flag if turn signal not active (needs OBD)
+
+  # Tier-2/3 detectors are specified in docs and stubbed in code.
+  stop_sign: { enabled: false }
+  red_light: { enabled: false }
+  other_vehicle_speeding: { enabled: false }
+
+privacy:
+  audio_enabled: false          # default video-only (many 2-party-consent states)
+  alpr_on_event_only: true      # never continuously log plates
+  retention_days: 14            # auto-purge non-flagged footage
+  encrypt_archive: false        # recommend true (LUKS) if vehicle unsecured
+  blur_faces: false             # for exported/shared copies
+  blur_plates: false

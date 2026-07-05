@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tvds"
+version = "0.1.0"
+description = "Edge-AI in-vehicle traffic violation detection & evidence recorder"
+requires-python = ">=3.10"
+readme = "README.md"
+dependencies = ["numpy>=1.24", "pyyaml>=6.0"]
+
+[project.optional-dependencies]
+vision = ["opencv-python>=4.8", "ultralytics>=8.2"]
+sensors = ["pynmea2>=1.19", "smbus2>=0.4", "obd>=0.7"]
+dev = ["pytest>=7.4"]
+
+[project.scripts]
+tvds = "tvd.main:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]

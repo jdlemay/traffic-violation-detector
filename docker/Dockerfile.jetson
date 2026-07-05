@@ -1,0 +1,31 @@
+# Reproducible build for the Jetson (JetPack 6 / L4T). CUDA, cuDNN, TensorRT and
+# the HW video codec come from the base image; do NOT pip-install torch/tensorrt
+# here — use the ones in the L4T stack.
+#
+# Build on the device:
+#   docker build -f docker/Dockerfile.jetson -t tvds:jetson .
+# Run with GPU + cameras + sensors:
+#   docker run --runtime nvidia --network host --privileged \
+#     -v /dev:/dev -v $PWD/data:/app/data tvds:jetson
+ARG L4T_TAG=r36.3.0
+FROM nvcr.io/nvidia/l4t-jetpack:${L4T_TAG}
+
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        python3-pip python3-venv ffmpeg gpsd gpsd-clients i2c-tools \
+        gstreamer1.0-tools gstreamer1.0-plugins-base \
+        gstreamer1.0-plugins-good gstreamer1.0-plugins-bad \
+        python3-opencv \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+COPY requirements.txt ./
+# Torch/torchvision come from the L4T stack or the NVIDIA Jetson wheel index;
+# install only the light deps + ultralytics here.
+RUN pip3 install --no-cache-dir pyyaml numpy pynmea2 smbus2 obd ultralytics
+
+COPY . .
+ENV PYTHONPATH=/app/src
+# Export the TensorRT engine on first boot on-device (device-specific), e.g.:
+#   yolo export model=yolo11s.pt format=engine half=True device=0
+CMD ["python3", "-m", "tvd.main", "--config", "config/config.yaml"]

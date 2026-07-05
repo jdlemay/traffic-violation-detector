@@ -1,0 +1,24 @@
+# Core (pure-logic + pipeline). Works on a dev laptop.
+numpy>=1.24
+pyyaml>=6.0
+
+# Vision / models. On the Jetson, install torch/torchvision from the NVIDIA
+# Jetson wheel index (NOT PyPI) to match CUDA/JetPack; TensorRT ships with JetPack.
+opencv-python>=4.8        # use opencv built against GStreamer on device
+ultralytics>=8.2          # YOLO + built-in ByteTrack/BoT-SORT tracking
+
+# Sensors (optional at runtime; imports are guarded)
+pynmea2>=1.19             # GPS NMEA parsing
+smbus2>=0.4               # IMU over I2C (device only)
+obd>=0.7                  # OBD-II (python-OBD)
+
+# ALPR (optional; Phase 6)
+# fast-plate-ocr>=1.0
+# paddleocr>=2.7
+
+# Dev / test
+pytest>=7.4
+
+# Review UI (Phase 7)
+# fastapi>=0.110
+# uvicorn>=0.29

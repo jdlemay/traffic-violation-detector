@@ -1,0 +1,26 @@
+# systemd unit: auto-start TVDS on boot, restart on failure.
+# Install:
+#   sudo cp deploy/tvds.service /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now tvds
+#
+# Pair this with the ignition-sense watcher so the box shuts down cleanly on
+# power loss (supercap holds 5V during shutdown -h). See docs/03 §Power.
+[Unit]
+Description=Traffic Violation Detection System
+After=network-online.target gpsd.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=tvds
+WorkingDirectory=/opt/tvds
+Environment=PYTHONPATH=/opt/tvds/src
+ExecStart=/opt/tvds/.venv/bin/python -m tvd.main --config /opt/tvds/config/config.yaml
+Restart=on-failure
+RestartSec=3
+# Give the process time to finalize the current clip on stop.
+TimeoutStopSec=20
+Nice=-5
+
+[Install]
+WantedBy=multi-user.target
