@@ -1,5 +1,7 @@
 # Traffic Violation Detection System (TVDS)
 
+[![CI](https://github.com/jdlemay/traffic-violation-detector/actions/workflows/ci.yml/badge.svg)](https://github.com/jdlemay/traffic-violation-detector/actions/workflows/ci.yml)
+
 An AI-powered, in-vehicle edge system that detects dangerous driving and traffic
 violations from onboard cameras and vehicle sensors, then records timestamped,
 GPS-tagged evidence for later review.
@@ -97,7 +99,10 @@ python -m tvd.main --source sample.mp4 --config config/config.yaml --sim-sensors
 ## Status
 
 This repository contains the **design and a runnable software scaffold**. The
-architecture, interfaces, config, and rule engine are complete and testable; the
-per-violation detectors ship with working implementations for the Tier-1 events
-and clearly marked stubs for the harder Tier-2/3 events. See
+architecture, interfaces, config, and rule engine are complete and testable. The
+per-violation detectors ship with working implementations for all **Tier-1**
+events plus **Tier-2 stop-sign compliance** and the **Tier-2 red-light entry**
+rule; the remaining Tier-3 advisory detectors and the perception front-ends they
+depend on (light-state classifier, ALPR OCR) are clearly marked stubs. CI runs
+the 25-test suite on Python 3.10–3.12 on every push. See
 [`docs/01-project-plan.md`](docs/01-project-plan.md) for what is done vs. planned.

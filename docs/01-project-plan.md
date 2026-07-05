@@ -128,8 +128,16 @@ Refined from the original estimate. Full itemized BOM in
 - Geometry/calibration helpers
 - Unit tests for the rule engine (pure logic, no hardware)
 
+- **Tier-2 stop-sign compliance** (rolling-stop detection from YOLO stop-sign
+  detections + ego speed profile) — implemented with tests
+- **Tier-2 red-light entry** rule (fires on governing-red + stop-line crossing +
+  forward motion) — implemented with tests; needs an upstream light-state
+  estimator to feed it `LightState`
+- **CI**: GitHub Actions runs the test suite on Python 3.10–3.12 on every push
+
 **Planned (stubbed with clear TODOs):**
-- Tier-2 sign/signal/red-light logic and ALPR OCR wiring
-- Tier-3 other-vehicle advisory detectors
-- Review web UI
+- Light-state classifier + stop-line geometry to drive the red-light rule
+- ALPR OCR wiring (plate detector + OCR engine)
+- Tier-3 other-vehicle advisory detectors (speeding, others' red-light/stop-sign)
+- Review web UI (Phase 7)
 - Cloud sync / fleet / OTA updates

@@ -12,6 +12,8 @@ from .base import Event, FrameContext, ViolationDetector
 from .collision import CollisionDetector
 from .hard_brake import HarshDrivingDetector
 from .lane_departure import LaneDepartureDetector
+from .red_light import RedLightEntryDetector
+from .stop_sign import StopSignComplianceDetector
 from .tailgating import TailgatingDetector
 
 
@@ -29,8 +31,14 @@ def build_default_detectors(vcfg: dict, lane_extractor=None) -> list[ViolationDe
     if vcfg.get("lane_departure", {}).get("enabled", True):
         detectors.append(LaneDepartureDetector(vcfg.get("lane_departure", {}),
                                                lane_extractor=lane_extractor))
-    # Tier-2/3 detectors (stop_sign, red_light, other_vehicle_speeding) are
-    # specified in docs/05 and can be appended here as they are implemented.
+    # Tier-2 detectors (opt-in via config; require ego speed / injected state).
+    if vcfg.get("stop_sign", {}).get("enabled", False):
+        detectors.append(StopSignComplianceDetector(vcfg.get("stop_sign", {})))
+    if vcfg.get("red_light", {}).get("enabled", False):
+        detectors.append(RedLightEntryDetector(vcfg.get("red_light", {})))
+    # Remaining Tier-3 detectors (other_vehicle_speeding, other-vehicle
+    # red-light/stop-sign) are specified in docs/05 and appended here as
+    # implemented.
     return detectors
 
 

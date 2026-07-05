@@ -90,9 +90,19 @@ violations:
     enabled: true
     require_no_signal: true # only flag if turn signal not active (needs OBD)
 
-  # Tier-2/3 detectors are specified in docs and stubbed in code.
-  stop_sign: { enabled: false }
-  red_light: { enabled: false }
+  # Tier-2 (opt-in). stop_sign works from YOLO stop-sign detections + ego speed.
+  # red_light needs an upstream light-state estimator to inject LightState.
+  stop_sign:
+    enabled: false
+    stop_speed_mps: 0.5       # at/below this = "stopped"
+    enter_area_frac: 0.004    # sign bbox area (frac of frame) = "at the line"
+    lost_seconds: 0.8         # sign unseen this long = we've passed it
+  red_light:
+    enabled: false
+    flag_yellow: false        # also flag entering on yellow
+    min_speed_mps: 1.0        # must be moving forward to count as entry
+
+  # Tier-3 (advisory, not yet implemented) — see docs/05.
   other_vehicle_speeding: { enabled: false }
 
 privacy:
