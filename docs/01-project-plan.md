@@ -134,10 +134,21 @@ Refined from the original estimate. Full itemized BOM in
   forward motion) — implemented with tests; needs an upstream light-state
   estimator to feed it `LightState`
 - **CI**: GitHub Actions runs the test suite on Python 3.10–3.12 on every push
+- **Segment recording + still capture**: the pipeline continuously encodes
+  ring-buffer segments (OpenCV dev path; GStreamer/NVENC noted for device) and
+  saves a still JPEG per event — the full evidence chain (still + assembled
+  pre/post clip + SHA-256 + DB row) is exercised end-to-end
+- **Clip assembly hardening**: ffmpeg stream-copy concat with an OpenCV
+  re-encode fallback; failures are logged, never silent
+- **Traffic-light color classifier** (`light_classifier.py`): pure-numpy
+  red/yellow/green/unknown classification of light crops, with tests — the
+  perception front-end for the red-light rule
+- **Review UI (Phase 7)** (`review.py`): local FastAPI app to browse events,
+  watch clips, view stills, GPS map links, integrity hashes
 
 **Planned (stubbed with clear TODOs):**
-- Light-state classifier + stop-line geometry to drive the red-light rule
+- Governing-signal association + stop-line geometry to connect the light
+  classifier to the red-light rule end-to-end
 - ALPR OCR wiring (plate detector + OCR engine)
 - Tier-3 other-vehicle advisory detectors (speeding, others' red-light/stop-sign)
-- Review web UI (Phase 7)
 - Cloud sync / fleet / OTA updates

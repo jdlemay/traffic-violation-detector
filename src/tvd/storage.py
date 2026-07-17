@@ -78,6 +78,14 @@ class EventStore:
             self._conn.commit()
             return int(cur.lastrowid)
 
+    def update_clip(self, event_id: int, clip_path: str) -> None:
+        """Attach a finalized clip (and its integrity hash) to an event."""
+        with self._lock:
+            self._conn.execute(
+                "UPDATE events SET clip_path=?, clip_sha256=? WHERE id=?",
+                (clip_path, sha256_file(clip_path), event_id))
+            self._conn.commit()
+
     def recent(self, limit: int = 50) -> list[dict]:
         with self._lock:
             self._conn.row_factory = sqlite3.Row

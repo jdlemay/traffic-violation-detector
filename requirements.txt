@@ -19,6 +19,6 @@ obd>=0.7                  # OBD-II (python-OBD)
 # Dev / test
 pytest>=7.4
 
-# Review UI (Phase 7)
-# fastapi>=0.110
-# uvicorn>=0.29
+# Review UI (Phase 7): python -m tvd.review --db data/events.db
+fastapi>=0.110
+uvicorn>=0.29

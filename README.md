@@ -61,6 +61,8 @@ traffic-violation-detector/
 │   ├── recorder.py                ← pre/post-event ring-buffer clip recorder
 │   ├── storage.py                 ← SQLite evidence/metadata store
 │   ├── alpr.py                    ← optional plate detection + OCR
+│   ├── light_classifier.py        ← traffic-light red/yellow/green classifier
+│   ├── review.py                  ← local web UI to browse recorded events
 │   ├── geometry.py                ← calibration, distance & speed helpers
 │   ├── sensors/                   ← gps.py, imu.py, obd.py (graceful fallbacks)
 │   └── violations/                ← rule engine + per-violation detectors
@@ -86,6 +88,9 @@ pytest -q
 
 # Run the pipeline against a sample video with the sim sensor backend:
 python -m tvd.main --source sample.mp4 --config config/config.yaml --sim-sensors
+
+# Browse recorded events in the local review UI (http://127.0.0.1:8080):
+python -m tvd.review --db data/events.db
 ```
 
 ## Getting started on the real device

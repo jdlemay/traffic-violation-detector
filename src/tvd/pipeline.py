@@ -21,7 +21,7 @@ from typing import Optional
 from .capture import open_source
 from .config import Config
 from .detector import Detector
-from .recorder import ClipRecorder, Segment, SegmentRingBuffer
+from .recorder import ClipRecorder, SegmentRingBuffer, SegmentWriter
 from .sensors.gps import GpsReader
 from .sensors.imu import ImuReader
 from .sensors.obd import ObdReader
@@ -70,8 +70,13 @@ class Pipeline:
         rc = cfg.get("recorder", {})
         self.ring = SegmentRingBuffer(rc.get("archive_dir", "./data/archive"),
                                       keep_seconds=900.0)
+        self.segment_writer = SegmentWriter(
+            self.ring, fps=cfg.get("capture.fps", 30),
+            segment_seconds=rc.get("segment_seconds", 2))
+        self.media_dir = cfg.get("storage.media_dir", "./data/events")
+        os.makedirs(self.media_dir, exist_ok=True)
         self.clip_recorder = ClipRecorder(
-            self.ring, cfg.get("storage.media_dir", "./data/events"),
+            self.ring, self.media_dir,
             pre_s=rc.get("pre_event_seconds", 10),
             post_s=rc.get("post_event_seconds", 10),
             container=rc.get("container", "mp4"))
@@ -84,7 +89,7 @@ class Pipeline:
             import numpy as np
             self.homography = np.asarray(H, dtype=float)
 
-        self._pending_clips = []  # (fire_at_ts, event, gps, speed, event_id)
+        self._pending_clips = []  # (fire_at_ts, event_ts, clip_name, event_id)
 
     def start_sensors(self):
         for t in self._sensor_threads:
@@ -108,6 +113,7 @@ class Pipeline:
         try:
             for ts, frame in cam.frames():
                 h, w = frame.shape[:2]
+                self.segment_writer.write(ts, frame)
                 tracks = self.detector.track(frame)
                 dt = 0.0 if prev_ts is None else ts - prev_ts
                 prev_ts = ts
@@ -115,41 +121,48 @@ class Pipeline:
                                    sensors=self.state.snapshot(),
                                    homography=self.homography, dt=dt)
                 for ev in self.engine.process(ctx):
-                    self._on_event(ev, ctx)
+                    self._on_event(ev, ctx, frame)
                 self._flush_pending_clips(ts)
                 n += 1
                 if self.max_frames and n >= self.max_frames:
                     break
         finally:
+            self.segment_writer.close(prev_ts)
             cam.release()
             self.stop_sensors()
             self.store.close()
             print(f"[pipeline] stopped after {n} frames")
 
-    def _on_event(self, ev, ctx):
+    def _on_event(self, ev, ctx, frame):
         snap = ctx.sensors
         speed = snap.best_speed_mps()
+        stamp = f"{datetime.fromtimestamp(ev.ts, tz=timezone.utc):%Y%m%dT%H%M%S}"
+        still_path = self._save_still(frame, f"{stamp}_{ev.type}")
         eid = self.store.record(ev, gps=snap.gps, speed_mps=speed,
-                                heading_deg=snap.gps.heading_deg)
-        name = f"{datetime.fromtimestamp(ev.ts, tz=timezone.utc):%Y%m%dT%H%M%S}_{ev.type}_{eid}"
-        # Schedule clip assembly for after the post-roll window has elapsed.
+                                heading_deg=snap.gps.heading_deg,
+                                still_path=still_path)
+        # Schedule clip assembly for after the post-roll window has elapsed;
+        # carry the ORIGINAL event ts so a late flush can't shift the window.
         fire_at = ev.ts + self.clip_recorder.post_s + 0.5
-        self._pending_clips.append((fire_at, name, eid))
+        self._pending_clips.append((fire_at, ev.ts, f"{stamp}_{ev.type}_{eid}", eid))
         print(f"[event] #{eid} {ev.type} conf={ev.confidence:.2f} "
               f"{'(degraded) ' if ev.degraded else ''}meta={ev.meta}")
+
+    def _save_still(self, frame, name):
+        try:
+            import cv2
+            path = os.path.join(self.media_dir, f"{name}.jpg")
+            cv2.imwrite(path, frame)
+            return path
+        except Exception:
+            return None
 
     def _flush_pending_clips(self, now_ts):
         still, ready = [], []
         for item in self._pending_clips:
             (ready if item[0] <= now_ts else still).append(item)
         self._pending_clips = still
-        for _, name, eid in ready:
-            event_ts = now_ts - self.clip_recorder.post_s
+        for _, event_ts, name, eid in ready:
             clip = self.clip_recorder.assemble(event_ts, name)
             if clip:
-                from .storage import sha256_file
-                with self.store._lock:
-                    self.store._conn.execute(
-                        "UPDATE events SET clip_path=?, clip_sha256=? WHERE id=?",
-                        (clip, sha256_file(clip), eid))
-                    self.store._conn.commit()
+                self.store.update_clip(eid, clip)
