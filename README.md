@@ -53,7 +53,8 @@ traffic-violation-detector/
 │   ├── 04-software-stack.md       ← OS, libraries, models, versions, setup
 │   ├── 05-detection-design.md     ← how each violation is detected + difficulty tiers
 │   ├── 06-legal-and-privacy.md    ← legal reality, privacy controls, retention
-│   └── 07-changes-from-original-spec.md
+│   ├── 07-changes-from-original-spec.md
+│   └── 08-hardware-build-guide.md ← step-by-step bench-to-vehicle build w/ gates
 ├── src/tvd/                       ← the buildable program (Python package)
 │   ├── pipeline.py                ← threaded capture→detect→track→rules→record
 │   ├── capture.py                 ← camera capture (GStreamer/OpenCV)
@@ -69,7 +70,9 @@ traffic-violation-detector/
 ├── config/config.yaml             ← all tunable parameters in one place
 ├── docker/Dockerfile.jetson       ← reproducible build for Jetson (L4T base)
 ├── deploy/tvds.service            ← systemd unit for auto-start on boot
+├── deploy/tvds-power-watch.service← graceful-shutdown watcher unit
 ├── scripts/setup_jetson.sh        ← one-shot device provisioning
+├── scripts/power_watch.py         ← ignition-sense clean-shutdown watcher
 └── tests/                         ← unit tests for the pure-logic rule engine
 ```
 
@@ -96,10 +99,14 @@ python -m tvd.review --db data/events.db
 ## Getting started on the real device
 
 1. Read [`docs/03-hardware-bom.md`](docs/03-hardware-bom.md) and order parts.
-2. Flash and provision: [`docs/04-software-stack.md`](docs/04-software-stack.md) →
-   `scripts/setup_jetson.sh`.
-3. Calibrate cameras: [`docs/05-detection-design.md`](docs/05-detection-design.md#calibration).
-4. `sudo systemctl enable --now tvds` (see `deploy/tvds.service`).
+2. Follow the **step-by-step build**:
+   [`docs/08-hardware-build-guide.md`](docs/08-hardware-build-guide.md) — bench
+   bring-up → power tests → software → vehicle install → calibration → tuning,
+   each stage with a verification gate.
+3. Flash/provision details: [`docs/04-software-stack.md`](docs/04-software-stack.md)
+   → `scripts/setup_jetson.sh`.
+4. Calibrate cameras: [`docs/05-detection-design.md`](docs/05-detection-design.md#calibration).
+5. `sudo systemctl enable --now tvds tvds-power-watch` (see `deploy/`).
 
 ## Status
 

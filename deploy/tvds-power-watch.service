@@ -1,0 +1,20 @@
+# systemd unit: watch the ignition/power-good GPIO and shut down cleanly on
+# power loss so the supercap can carry the OS through a graceful halt.
+# See docs/08 Stage 5. Install alongside tvds.service:
+#   sudo cp deploy/tvds-power-watch.service /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now tvds-power-watch
+#
+# Adjust --pin / --active-low to match how you wired the sense line.
+[Unit]
+Description=TVDS ignition-sense power watcher (graceful shutdown on power loss)
+After=multi-user.target
+
+[Service]
+Type=simple
+# Runs as root because it calls shutdown; it does nothing else privileged.
+ExecStart=/opt/tvds/.venv/bin/python /opt/tvds/scripts/power_watch.py --pin 7 --hold-seconds 3
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

@@ -105,6 +105,12 @@ violations:
   # Tier-3 (advisory, not yet implemented) — see docs/05.
   other_vehicle_speeding: { enabled: false }
 
+power:
+  # Ignition/power-good sense (see docs/08 Stage 5, scripts/power_watch.py).
+  ignition_gpio: 7              # BOARD pin wired to the level-shifted sense line
+  active_low: false            # true if LOW means "power good" (e.g. PGOOD)
+  hold_seconds: 3.0            # power gone this long -> clean shutdown
+
 privacy:
   audio_enabled: false          # default video-only (many 2-party-consent states)
   alpr_on_event_only: true      # never continuously log plates
